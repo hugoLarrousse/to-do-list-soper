@@ -9,6 +9,7 @@ type ActionCardProps = {
   onLongPress?: () => void;
   showListBadge?: boolean;
   disabled?: boolean;
+  index?: number;
 };
 
 function getListBadgeStyle(list: ActionList): {
@@ -34,6 +35,7 @@ export default function ActionCard({
   onLongPress,
   showListBadge = true,
   disabled = false,
+  index,
 }: ActionCardProps) {
   const shouldShowBadge = showListBadge && action.list !== null;
 
@@ -47,6 +49,9 @@ export default function ActionCard({
         pressed && styles.cardPressed,
       ]}
     >
+      {index !== undefined && (
+        <Text style={styles.indexNumber}>{index}</Text>
+      )}
       <View style={styles.textContainer}>
         <Text
           numberOfLines={2}
@@ -127,5 +132,12 @@ const styles = StyleSheet.create({
   badgePlaceholder: {
     width: 0,
     height: 0,
+  },
+  indexNumber: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+    width: 28,
+    textAlign: 'center',
   },
 });

@@ -156,6 +156,7 @@ export default function PersoTab() {
         <ActionListComponent
           actions={actions}
           showListBadge={false}
+          showIndex
           onReorder={(fromIndex, toIndex) => {
             void handleReorder(fromIndex, toIndex);
           }}

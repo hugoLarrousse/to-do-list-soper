@@ -1,15 +1,25 @@
+import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { initDatabase } from '@/db/database';
-import RootNavigator from '@/navigation/RootNavigator';
+import RootNavigator, { navigationRef } from '@/navigation/RootNavigator';
 import { refreshListReminders } from '@/services/listReminderService';
+import {
+  SNOOZE_10M,
+  SNOOZE_1H,
+  SNOOZE_MORE,
+  setupNotificationCategories,
+} from '@/services/notificationSetup';
+import '@/services/notificationSetup'; // registers foreground handler at module scope
+import { snoozeNotification, SNOOZE_DURATIONS } from '@/services/snoozeService';
 import { theme } from '@/theme';
 
 export default function App() {
   const [isDatabaseReady, setIsDatabaseReady] = useState(false);
   const [databaseInitError, setDatabaseInitError] = useState<Error | null>(null);
+  const handledResponseRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -17,6 +27,11 @@ export default function App() {
     const bootstrap = async () => {
       try {
         await initDatabase();
+        try {
+          await setupNotificationCategories();
+        } catch {
+          // Non-fatal: snooze buttons won't appear but app still works.
+        }
         try {
           await refreshListReminders();
         } catch {
@@ -42,6 +57,62 @@ export default function App() {
       isMounted = false;
     };
   }, []);
+
+  // --- Notification response handler ---
+  const lastResponse = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (!lastResponse || !isDatabaseReady) {
+      return;
+    }
+
+    const responseKey =
+      lastResponse.notification.request.identifier +
+      ':' +
+      lastResponse.actionIdentifier;
+
+    if (handledResponseRef.current === responseKey) {
+      return;
+    }
+
+    handledResponseRef.current = responseKey;
+
+    const { actionIdentifier } = lastResponse;
+    const content = lastResponse.notification.request.content;
+    const notifTitle = content.title ?? '';
+    const notifBody = content.body ?? '';
+    const notifData = (content.data ?? {}) as Record<string, unknown>;
+
+    if (actionIdentifier === SNOOZE_10M) {
+      void snoozeNotification(
+        notifTitle,
+        notifBody,
+        notifData,
+        SNOOZE_DURATIONS['10min'],
+      );
+      return;
+    }
+
+    if (actionIdentifier === SNOOZE_1H) {
+      void snoozeNotification(
+        notifTitle,
+        notifBody,
+        notifData,
+        SNOOZE_DURATIONS['1h'],
+      );
+      return;
+    }
+
+    if (actionIdentifier === SNOOZE_MORE) {
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('Snooze', {
+          title: notifTitle,
+          body: notifBody,
+          data: notifData,
+        });
+      }
+    }
+  }, [lastResponse, isDatabaseReady]);
 
   if (databaseInitError) {
     throw databaseInitError;

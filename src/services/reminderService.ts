@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as notificationMetaRepo from '@/repos/notificationMetaRepo';
+import { CATEGORY_ACTION_REMINDER } from '@/services/notificationSetup';
 import { Action, ReminderType } from '@/types';
 
 function getActionReminderKey(actionId: number): string {
@@ -115,6 +116,8 @@ export async function scheduleActionReminder(action: Action): Promise<void> {
     content: {
       title: 'Reminder',
       body: action.title,
+      categoryIdentifier: CATEGORY_ACTION_REMINDER,
+      data: { type: 'action_reminder', actionId: action.id },
     },
     trigger,
   });

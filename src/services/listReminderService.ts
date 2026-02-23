@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as actionRepo from '@/repos/actionRepo';
 import * as notificationMetaRepo from '@/repos/notificationMetaRepo';
 import * as settingsRepo from '@/repos/settingsRepo';
+import { CATEGORY_LIST_REMINDER } from '@/services/notificationSetup';
 import { ActionList, SettingsKey } from '@/types';
 
 type SupportedList = ActionList.Perso | ActionList.Pro;
@@ -74,16 +75,38 @@ async function resolveReminderTime(list: SupportedList): Promise<string> {
   return value ?? DEFAULT_REMINDER_TIMES[list];
 }
 
+async function buildNotificationBody(
+  list: SupportedList,
+  count: number,
+): Promise<string> {
+  const taskLabel = count === 1 ? 'task' : 'tasks';
+  let body = `${count} ${taskLabel} remaining`;
+
+  if (count > 0) {
+    const topTasks = await actionRepo.getTopActiveByList(list, 3);
+    const lines = topTasks.map((task, index) => `${index + 1}. ${task.title}`);
+    body += `\n${lines.join('\n')}`;
+
+    if (count > 3) {
+      body += `\n…and ${count - 3} more`;
+    }
+  }
+
+  return body;
+}
+
 async function scheduleListReminderWithPermission(
   list: SupportedList,
   time: string,
 ): Promise<void> {
   const count = await actionRepo.getActiveCountByList(list);
-  const taskLabel = count === 1 ? 'task' : 'tasks';
+  const body = await buildNotificationBody(list, count);
   const notificationId = await Notifications.scheduleNotificationAsync({
     content: {
       title: getListDisplayName(list),
-      body: `${count} ${taskLabel} remaining`,
+      body,
+      categoryIdentifier: CATEGORY_LIST_REMINDER,
+      data: { type: 'list_reminder', list },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,

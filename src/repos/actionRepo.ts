@@ -178,6 +178,16 @@ export async function updateSortIndex(id: number, sortIndex: number): Promise<vo
   await db.runAsync('UPDATE actions SET sortIndex = ? WHERE id = ?', sortIndex, id);
 }
 
+export async function getTopActiveByList(list: string, limit: number): Promise<Action[]> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<ActionRow>(
+    'SELECT * FROM actions WHERE isDone = 0 AND list = ? ORDER BY sortIndex ASC LIMIT ?',
+    list,
+    limit,
+  );
+  return rows.map(mapActionRow);
+}
+
 export async function rebalanceSortIndexes(list: string | null): Promise<void> {
   const db = getDatabase();
   const { clause, params } = resolveListClause(list);

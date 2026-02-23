@@ -24,6 +24,7 @@ type ActionListProps = {
   onDelete: (id: number) => void;
   onPress: (id: number) => void;
   showListBadge?: boolean;
+  showIndex?: boolean;
 };
 
 const SWIPE_DISTANCE = 88;
@@ -66,6 +67,7 @@ export default function ActionList({
   onDelete,
   onPress,
   showListBadge = true,
+  showIndex = false,
 }: ActionListProps) {
   const itemRefs = useRef<Map<number, SwipeableItemImperativeRef>>(new Map());
 
@@ -95,7 +97,7 @@ export default function ActionList({
           onReorder(from, to);
         }
       }}
-      renderItem={({ item, drag, isActive }) => (
+      renderItem={({ item, drag, isActive, getIndex }) => (
         <ScaleDecorator>
           <SwipeableItem
             item={item}
@@ -170,6 +172,7 @@ export default function ActionList({
               onLongPress={drag}
               showListBadge={showListBadge}
               disabled={isActive}
+              index={showIndex ? (getIndex() ?? 0) + 1 : undefined}
             />
           </SwipeableItem>
         </ScaleDecorator>

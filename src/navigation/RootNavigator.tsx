@@ -2,11 +2,13 @@ import {
   DarkTheme,
   NavigationContainer,
   Theme,
+  createNavigationContainerRef,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainTabs from '@/navigation/MainTabs';
 import AddActionScreen from '@/screens/AddActionScreen';
 import EditActionScreen from '@/screens/EditActionScreen';
+import SnoozeScreen from '@/screens/SnoozeScreen';
 import { theme } from '@/theme';
 import { ActionList } from '@/types';
 
@@ -20,7 +22,14 @@ export type RootStackParamList = {
   EditAction: {
     actionId: number;
   };
+  Snooze: {
+    title: string;
+    body: string;
+    data: Record<string, unknown>;
+  };
 };
+
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -39,7 +48,7 @@ const appNavigationTheme: Theme = {
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer theme={appNavigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={appNavigationTheme}>
       <Stack.Navigator>
         <Stack.Screen
           name="Main"
@@ -60,6 +69,16 @@ export default function RootNavigator() {
           component={EditActionScreen}
           options={{
             title: 'Edit Action',
+            headerStyle: { backgroundColor: theme.colors.surface },
+            headerTintColor: theme.colors.text,
+          }}
+        />
+        <Stack.Screen
+          name="Snooze"
+          component={SnoozeScreen}
+          options={{
+            presentation: 'modal',
+            title: 'Snooze',
             headerStyle: { backgroundColor: theme.colors.surface },
             headerTintColor: theme.colors.text,
           }}
