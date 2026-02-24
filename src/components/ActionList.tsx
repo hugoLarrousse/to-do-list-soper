@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import DraggableFlatList, {
   ScaleDecorator,
 } from 'react-native-draggable-flatlist';
@@ -12,7 +13,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRef } from 'react';
+import { useContext, useMemo, useRef } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ActionCard from '@/components/ActionCard';
 import { theme } from '@/theme';
 import { Action } from '@/types';
@@ -28,6 +30,8 @@ type ActionListProps = {
 };
 
 const SWIPE_DISTANCE = 88;
+const BASE_LIST_BOTTOM_PADDING = 12;
+const FAB_CLEARANCE = 88;
 
 type UnderlayProps = {
   icon: 'checkmark' | 'trash';
@@ -70,6 +74,13 @@ export default function ActionList({
   showIndex = false,
 }: ActionListProps) {
   const itemRefs = useRef<Map<number, SwipeableItemImperativeRef>>(new Map());
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
+
+  const listBottomPadding = useMemo(
+    () => BASE_LIST_BOTTOM_PADDING + FAB_CLEARANCE + (tabBarHeight || insets.bottom),
+    [insets.bottom, tabBarHeight],
+  );
 
   const closeItem = (id: number) => {
     const ref = itemRefs.current.get(id);
@@ -91,7 +102,10 @@ export default function ActionList({
       data={actions}
       keyExtractor={(item) => `${item.id}`}
       activationDistance={16}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={[
+        styles.listContent,
+        { paddingBottom: listBottomPadding },
+      ]}
       onDragEnd={({ from, to }) => {
         if (from !== to) {
           onReorder(from, to);
@@ -184,7 +198,7 @@ export default function ActionList({
 const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     gap: 10,
     backgroundColor: theme.colors.background,
   },

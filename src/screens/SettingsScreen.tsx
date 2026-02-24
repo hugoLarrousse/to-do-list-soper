@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
+  Switch,
   StyleSheet,
   Text,
   View,
@@ -21,23 +23,35 @@ import { ActionList, SettingsKey } from '@/types';
 
 const DEFAULT_PERSO_TIME = '08:00';
 const DEFAULT_PRO_TIME = '13:00';
+const DEFAULT_NOTIFICATION_DEBUG_FEEDBACK = false;
+const EXTRA_CONTENT_BOTTOM_PADDING = 24;
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
   const [persoReminderTime, setPersoReminderTime] = useState(DEFAULT_PERSO_TIME);
   const [proReminderTime, setProReminderTime] = useState(DEFAULT_PRO_TIME);
+  const [notificationDebugFeedback, setNotificationDebugFeedback] = useState(
+    DEFAULT_NOTIFICATION_DEBUG_FEEDBACK,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [isExportingJSON, setIsExportingJSON] = useState(false);
+
+  const contentPaddingBottom = useMemo(
+    () => EXTRA_CONTENT_BOTTOM_PADDING + (tabBarHeight || insets.bottom),
+    [insets.bottom, tabBarHeight],
+  );
 
   useEffect(() => {
     let isMounted = true;
 
     const loadSettings = async () => {
       try {
-        const [persoValue, proValue] = await Promise.all([
+        const [persoValue, proValue, debugFeedbackValue] = await Promise.all([
           settingsRepo.get(SettingsKey.PersoReminderTime),
           settingsRepo.get(SettingsKey.ProReminderTime),
+          settingsRepo.get(SettingsKey.NotificationActionDebugFeedback),
         ]);
 
         if (!isMounted) {
@@ -46,6 +60,11 @@ export default function SettingsScreen() {
 
         setPersoReminderTime(persoValue ?? DEFAULT_PERSO_TIME);
         setProReminderTime(proValue ?? DEFAULT_PRO_TIME);
+        setNotificationDebugFeedback(
+          debugFeedbackValue === '1'
+            ? true
+            : DEFAULT_NOTIFICATION_DEBUG_FEEDBACK,
+        );
       } catch {
         if (isMounted) {
           Alert.alert('Unable to load settings');
@@ -117,6 +136,21 @@ export default function SettingsScreen() {
     }
   };
 
+  const updateNotificationDebugFeedback = async (nextValue: boolean) => {
+    const previousValue = notificationDebugFeedback;
+    setNotificationDebugFeedback(nextValue);
+
+    try {
+      await settingsRepo.set(
+        SettingsKey.NotificationActionDebugFeedback,
+        nextValue ? '1' : '0',
+      );
+    } catch {
+      setNotificationDebugFeedback(previousValue);
+      Alert.alert('Unable to update debug feedback setting');
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
@@ -131,7 +165,10 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={[styles.container, { paddingTop: insets.top }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: contentPaddingBottom },
+      ]}
     >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Perso Reminder Time</Text>
@@ -151,6 +188,29 @@ export default function SettingsScreen() {
             void updateListReminderTime(ActionList.Pro, value);
           }}
         />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Developer</Text>
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleTextContent}>
+            <Text style={styles.toggleTitle}>Notification debug feedback</Text>
+            <Text style={styles.toggleSubtitle}>
+              Show a toast/alert when Snooze 10 min or 1 hour is processed
+            </Text>
+          </View>
+          <Switch
+            value={notificationDebugFeedback}
+            onValueChange={(value) => {
+              void updateNotificationDebugFeedback(value);
+            }}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primary,
+            }}
+            thumbColor={theme.colors.text}
+          />
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -197,7 +257,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     gap: 20,
-    paddingBottom: 28,
   },
   loadingContainer: {
     flex: 1,
@@ -217,6 +276,25 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 16,
     fontWeight: '700',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  toggleTextContent: {
+    flex: 1,
+    gap: 4,
+  },
+  toggleTitle: {
+    color: theme.colors.text,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  toggleSubtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
   },
   button: {
     minHeight: 48,

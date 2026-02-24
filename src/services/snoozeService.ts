@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import * as notificationMetaRepo from '@/repos/notificationMetaRepo';
 import { CATEGORY_SNOOZE } from './notificationSetup';
 
 // --- Snooze duration presets ---
@@ -11,6 +12,19 @@ export const SNOOZE_DURATIONS = {
 } as const;
 
 export type SnoozeDurationKey = keyof typeof SNOOZE_DURATIONS;
+export const SNOOZE_META_KEY_FIELD = '__snoozeMetaKey';
+
+async function persistSnoozedNotificationMeta(
+  data: Record<string, unknown>,
+  notificationId: string,
+): Promise<void> {
+  const metaKey = data[SNOOZE_META_KEY_FIELD];
+  if (typeof metaKey !== 'string' || metaKey.length === 0) {
+    return;
+  }
+
+  await notificationMetaRepo.set(metaKey, notificationId);
+}
 
 /**
  * Schedule a snoozed copy of a notification after a relative delay.
@@ -22,8 +36,8 @@ export async function snoozeNotification(
   body: string,
   data: Record<string, unknown>,
   delayMs: number,
-): Promise<void> {
-  await Notifications.scheduleNotificationAsync({
+): Promise<string> {
+  const notificationId = await Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
@@ -35,6 +49,9 @@ export async function snoozeNotification(
       date: new Date(Date.now() + delayMs),
     },
   });
+
+  await persistSnoozedNotificationMeta(data, notificationId);
+  return notificationId;
 }
 
 /**
@@ -45,8 +62,8 @@ export async function snoozeNotificationToDate(
   body: string,
   data: Record<string, unknown>,
   date: Date,
-): Promise<void> {
-  await Notifications.scheduleNotificationAsync({
+): Promise<string> {
+  const notificationId = await Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
@@ -58,4 +75,7 @@ export async function snoozeNotificationToDate(
       date,
     },
   });
+
+  await persistSnoozedNotificationMeta(data, notificationId);
+  return notificationId;
 }

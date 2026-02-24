@@ -5,14 +5,14 @@ import * as settingsRepo from '@/repos/settingsRepo';
 import { CATEGORY_LIST_REMINDER } from '@/services/notificationSetup';
 import { ActionList, SettingsKey } from '@/types';
 
-type SupportedList = ActionList.Perso | ActionList.Pro;
+export type SupportedList = ActionList.Perso | ActionList.Pro;
 
 const DEFAULT_REMINDER_TIMES: Record<SupportedList, string> = {
   [ActionList.Perso]: '08:00',
   [ActionList.Pro]: '13:00',
 };
 
-function getListReminderKey(list: SupportedList): string {
+export function getListReminderKey(list: SupportedList): string {
   return `list_${list}`;
 }
 

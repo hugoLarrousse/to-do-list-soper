@@ -3,7 +3,7 @@ import * as notificationMetaRepo from '@/repos/notificationMetaRepo';
 import { CATEGORY_ACTION_REMINDER } from '@/services/notificationSetup';
 import { Action, ReminderType } from '@/types';
 
-function getActionReminderKey(actionId: number): string {
+export function getActionReminderKey(actionId: number): string {
   return `action_${actionId}`;
 }
 

@@ -46,4 +46,10 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
     SettingsKey.ProReminderTime,
     '13:00',
   );
+
+  await db.runAsync(
+    'INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)',
+    SettingsKey.NotificationActionDebugFeedback,
+    '0',
+  );
 }
